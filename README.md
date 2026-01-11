@@ -8,10 +8,14 @@ MCP server for Dubai real estate data. Query 1.6M+ DLD sales transactions and 9.
 uvx dld-mcp
 ```
 
-## Claude Desktop Setup
+## Setup
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+**Claude Code:**
+```bash
+claude mcp add dld -- uvx dld-mcp
+```
 
+**Claude Desktop** - add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
