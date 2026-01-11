@@ -1,14 +1,14 @@
 [project]
 name = "dld-mcp"
-version = "0.1.0"
-description = "MCP server for Dubai Land Department property transactions"
+version = "0.2.0"
+description = "MCP server for Dubai real estate - DLD transactions and Ejari rentals"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
     { name = "OfferBrief", email = "hello@offerbrief.com" }
 ]
-keywords = ["mcp", "dubai", "real-estate", "dld", "property"]
+keywords = ["mcp", "dubai", "real-estate", "dld", "property", "ejari", "rentals", "uae"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "License :: OSI Approved :: MIT License",

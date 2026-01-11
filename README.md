@@ -1,30 +1,16 @@
 # DLD MCP Server
 
-MCP server for Dubai Land Department property data. Query 1.6M+ real estate transactions directly from AI assistants via the [OfferBrief](https://offerbrief.com) API.
-
-## Features
-
-- **Search properties** by project, building, or community
-- **Market pulse** with YoY changes for apartments and villas
-- **Trending projects** - most transacted in last 90 days
-- **Price movers** - buildings with significant price changes
-- **Recent sales** - notable high-value transactions
-- **Check deals** - compare prices against market data
-- **Analyze listings** - AI-powered listing analysis
+MCP server for Dubai real estate data. Query 1.6M+ DLD sales transactions and 9.5M+ Ejari rental contracts.
 
 ## Installation
 
 ```bash
-# Using uv (recommended)
-uv pip install dld-mcp
-
-# Or pip
-pip install dld-mcp
+uvx dld-mcp
 ```
 
-## Usage with Claude Desktop
+## Claude Desktop Setup
 
-Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
 {
@@ -37,60 +23,45 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 }
 ```
 
-No configuration needed - the server calls the public OfferBrief API.
+## Tool: query_dld
 
-## Available Tools
+One flexible tool to query all Dubai property data.
 
-### find_project
-Find the best matching project for a query. More forgiving - handles typos, partial names, aliases.
+### Parameters
 
-```
-find_project("marina gate")  # → JUMEIRAH LIVING MARINA GATE
-find_project("jbr")          # → top project in Marsa Dubai
-find_project("downtown")     # → top project in Burj Khalifa
-```
+| Parameter | Values | Default |
+|-----------|--------|---------|
+| area | Area name or building (fuzzy search) | required |
+| type | `sales`, `rentals` | sales |
+| property_type | `all`, `apartment`, `villa`, `townhouse` | all |
+| bedrooms | `all`, `studio`, `1`, `2`, `3`, `4`, `5+` | all |
+| date_from | YYYY-MM-DD | 12 months ago |
+| date_to | YYYY-MM-DD | today |
+| metric | `stats`, `count`, `list` | stats |
+| limit | 1-50 (for list mode) | 10 |
 
-Returns project name, community, transaction count, and median price/sqm. Use the returned `project` name for `check_deal`.
-
-### search_properties
-Search for multiple matching projects/buildings.
-
-```
-search_properties("Marina Gate")
-search_properties("JBR")
-```
-
-### get_market_pulse
-Current market overview with YoY changes.
-
-### get_trending_projects
-Most transacted projects in last 90 days.
-
-### get_price_movers
-Buildings with significant 6-month price changes.
-
-### get_recent_sales
-Notable recent transactions (>=1M AED, last 7 days).
-
-### check_deal
-Evaluate if a property price is fair.
+### Examples
 
 ```
-check_deal(project="Marina Gate", area_sqm=120, price=2200000)
+"What's the median price in Marina?"
+→ query_dld(area="Marina")
+
+"How many villas sold in Palm Jumeirah in 2024?"
+→ query_dld(area="Palm", property_type="villa", date_from="2024-01-01", metric="count")
+
+"Average rent for 2BR in Downtown"
+→ query_dld(area="Downtown", type="rentals", bedrooms="2")
+
+"Show me recent sales in JBR"
+→ query_dld(area="JBR", metric="list", limit=10)
+
+"Compare Business Bay vs Marina apartment prices"
+→ Two calls with different areas
 ```
 
-Returns verdict: `great_deal`, `good_deal`, `fair_price`, `above_market`, or `overpriced`.
+### Supported Aliases
 
-### analyze_listing
-AI-powered analysis of property listing text.
-
-```
-analyze_listing("2BR in Marina Gate, 1200 sqft, asking 2.2M AED...")
-```
-
-## Resources
-
-- `dld://market-summary` - Current market snapshot
+Marina, JBR, Downtown, Palm, JVC, JLT, Business Bay, Sports City, Motor City, Silicon Oasis, Arabian Ranches, Discovery Gardens, International City, Creek Harbour, City Walk, Town Square, DAMAC Hills
 
 ## Development
 
@@ -103,4 +74,4 @@ uv run dld-mcp
 
 ## License
 
-MIT
+MIT - [OfferBrief](https://offerbrief.com)
