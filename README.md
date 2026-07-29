@@ -1,8 +1,12 @@
 # DLD MCP Server
 
-MCP server for Dubai real estate data. Query 1.6M+ DLD sales transactions and 9.5M+ Ejari rental contracts.
+Local stdio MCP server for querying Dubai property sales transactions and rental contracts through OfferBrief.
+
+The server uses MCP Python SDK v2 and supports the MCP 2026-07-28 protocol.
 
 ## Installation
+
+Run the published package directly:
 
 ```bash
 uvx dld-mcp
@@ -10,12 +14,14 @@ uvx dld-mcp
 
 ## Setup
 
-**Claude Code:**
+Claude Code:
+
 ```bash
 claude mcp add dld -- uvx dld-mcp
 ```
 
-**Claude Desktop** - add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+Claude Desktop:
+
 ```json
 {
   "mcpServers": {
@@ -27,55 +33,53 @@ claude mcp add dld -- uvx dld-mcp
 }
 ```
 
-## Tool: query_dld
+Add that entry to `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS.
 
-One flexible tool to query all Dubai property data.
+## Tool
 
-### Parameters
+`query_dld` accepts:
 
-| Parameter | Values | Default |
-|-----------|--------|---------|
-| area | Area name or building (fuzzy search) | required |
-| type | `sales`, `rentals` | sales |
-| property_type | `all`, `apartment`, `villa`, `townhouse` | all |
-| bedrooms | `all`, `studio`, `1`, `2`, `3`, `4`, `5+` | all |
-| date_from | YYYY-MM-DD | 12 months ago |
-| date_to | YYYY-MM-DD | today |
-| metric | `stats`, `count`, `list` | stats |
-| limit | 1-50 (for list mode) | 10 |
+| Parameter | Allowed values | Default |
+| --- | --- | --- |
+| `area` | Area or building name, at least 2 non-whitespace characters | Required |
+| `type` | `sales`, `rentals` | `sales` |
+| `property_type` | `all`, `apartment`, `villa`, `townhouse` | `all` |
+| `bedrooms` | `all`, `studio`, `1`, `2`, `3`, `4`, `5+` | `all` |
+| `date_from` | A real date in `YYYY-MM-DD` format | OfferBrief default |
+| `date_to` | A real date in `YYYY-MM-DD` format | OfferBrief default |
+| `metric` | `stats`, `count`, `list` | `stats` |
+| `limit` | Integer from 1 through 50 | `10` |
 
-### Examples
+`property_type` is supported only for sales. `date_from` cannot be later than `date_to`.
 
-```
-"What's the median price in Marina?"
-→ query_dld(area="Marina")
+Examples:
 
-"How many villas sold in Palm Jumeirah in 2024?"
-→ query_dld(area="Palm", property_type="villa", date_from="2024-01-01", metric="count")
-
-"Average rent for 2BR in Downtown"
-→ query_dld(area="Downtown", type="rentals", bedrooms="2")
-
-"Show me recent sales in JBR"
-→ query_dld(area="JBR", metric="list", limit=10)
-
-"Compare Business Bay vs Marina apartment prices"
-→ Two calls with different areas
+```text
+query_dld(area="Marina")
+query_dld(area="Palm", property_type="villa", date_from="2024-01-01", metric="count")
+query_dld(area="Downtown", type="rentals", bedrooms="2")
+query_dld(area="JBR", metric="list", limit=10)
 ```
 
-### Supported Aliases
+Invalid arguments fail before an API request. OfferBrief HTTP, rate limit, timeout, connection, and malformed response failures return structured errors with a message and status code.
 
-Marina, JBR, Downtown, Palm, JVC, JLT, Business Bay, Sports City, Motor City, Silicon Oasis, Arabian Ranches, Discovery Gardens, International City, Creek Harbour, City Walk, Town Square, DAMAC Hills
+## OfferBrief dependency and privacy
+
+Each tool call sends its query parameters to `https://offerbrief.com/api/query`. No credentials are used. The package does not log query parameters or response bodies.
+
+Results reflect the data available from OfferBrief when the call is made. This package does not claim a refresh schedule or transaction count.
 
 ## Development
 
 ```bash
 git clone https://github.com/level09/dld-mcp
 cd dld-mcp
-uv sync
-uv run dld-mcp
+uv sync --group dev
+uv run pytest
+uv run ruff check
+uv build
 ```
 
 ## License
 
-MIT - [OfferBrief](https://offerbrief.com)
+MIT, [OfferBrief](https://offerbrief.com)

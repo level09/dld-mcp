@@ -1,6 +1,6 @@
 [project]
 name = "dld-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "MCP server for Dubai real estate - DLD transactions and Ejari rentals"
 readme = "README.md"
 license = "MIT"
@@ -18,8 +18,15 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp>=2,<3",
     "httpx>=0.27.0",
+    "pydantic>=2.12",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.12",
 ]
 
 [project.scripts]
