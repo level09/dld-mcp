@@ -49,6 +49,17 @@ async def test_query_parameters_are_not_logged(client, set_http_handler, caplog)
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("status_code", [400, 404])
+async def test_client_errors_pass_through_offerbrief_message(client, set_http_handler, status_code):
+    set_http_handler(lambda request: httpx.Response(status_code, json={"error": "No data found for 'Nowhere'"}))
+
+    result = await call(client)
+
+    assert result.is_error
+    assert result.structured_content == {"error": "No data found for 'Nowhere'", "status": status_code}
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     ("status_code", "message"),
     [
@@ -66,7 +77,7 @@ async def test_http_failures_return_stable_errors(client, set_http_handler, stat
 
     result = await call(client)
 
-    assert not result.is_error
+    assert result.is_error
     assert result.structured_content == {"error": message, "status": status_code}
 
 
@@ -86,7 +97,7 @@ async def test_network_failures_return_stable_errors(client, set_http_handler, e
 
     result = await call(client)
 
-    assert not result.is_error
+    assert result.is_error
     assert result.structured_content == expected
 
 
@@ -106,5 +117,5 @@ async def test_malformed_responses_return_stable_errors(client, set_http_handler
 
     result = await call(client)
 
-    assert not result.is_error
+    assert result.is_error
     assert result.structured_content == {"error": message, "status": 502}

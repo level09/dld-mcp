@@ -32,7 +32,10 @@ async def test_server_discovers_query_dld_with_enum_and_boundary_schema(client):
     schema = tools[0].input_schema
     assert schema["properties"]["type"]["enum"] == ["sales", "rentals"]
     assert schema["properties"]["property_type"]["enum"] == ["all", "apartment", "villa", "townhouse"]
-    assert schema["properties"]["bedrooms"]["enum"] == ["all", "studio", "1", "2", "3", "4", "5+"]
+    assert schema["properties"]["bedrooms"]["enum"] == ["all", "studio", "1", "2", "3", "4", "5", "5+"]
+    assert tools[0].annotations.read_only_hint is True
+    assert tools[0].annotations.open_world_hint is True
+    assert tools[0].output_schema["type"] == "object"
     assert schema["properties"]["metric"]["enum"] == ["stats", "count", "list"]
     assert schema["properties"]["limit"]["minimum"] == 1
     assert schema["properties"]["limit"]["maximum"] == 50
@@ -54,7 +57,7 @@ async def test_area_requires_two_non_whitespace_characters(client, area):
     [
         ("type", ["sales", "rentals"]),
         ("property_type", ["all", "apartment", "villa", "townhouse"]),
-        ("bedrooms", ["all", "studio", "1", "2", "3", "4", "5+"]),
+        ("bedrooms", ["all", "studio", "1", "2", "3", "4", "5", "5+"]),
         ("metric", ["stats", "count", "list"]),
     ],
 )
@@ -91,6 +94,7 @@ async def test_date_from_cannot_follow_date_to(client):
     result = await call(client, date_from="2026-07-30", date_to="2026-07-29")
 
     assert result.is_error
+    assert "date_from must not be later than date_to" in result.content[0].text
 
 
 @pytest.mark.anyio
@@ -104,10 +108,25 @@ async def test_limit_boundaries(client, set_http_handler, limit, valid):
 
 
 @pytest.mark.anyio
-async def test_rentals_reject_sales_only_property_type(client):
+async def test_rentals_send_property_type(client, set_http_handler):
+    def handler(request):
+        assert request.url.params["type"] == "rentals"
+        assert request.url.params["property_type"] == "villa"
+        return httpx.Response(200, json={"count": 1})
+
+    set_http_handler(handler)
     result = await call(client, type="rentals", property_type="villa")
 
+    assert not result.is_error
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("bedrooms", ["studio", "2", "5", "5+"])
+async def test_rentals_reject_bedrooms_before_http(client, bedrooms):
+    result = await call(client, type="rentals", bedrooms=bedrooms)
+
     assert result.is_error
+    assert "only supported for sales" in result.content[0].text
 
 
 @pytest.mark.anyio

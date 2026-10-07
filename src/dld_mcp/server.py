@@ -1,5 +1,6 @@
 """MCP server for Dubai Land Department property data."""
 
+import json
 import logging
 from datetime import date
 from importlib.metadata import version
@@ -7,6 +8,8 @@ from typing import Annotated, Any, Literal
 
 import httpx
 from mcp.server import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
+from mcp.types import CallToolResult, TextContent, ToolAnnotations
 from pydantic import Field, StringConstraints
 
 API_BASE = "https://offerbrief.com/api"
@@ -17,7 +20,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 QueryType = Literal["sales", "rentals"]
 PropertyType = Literal["all", "apartment", "villa", "townhouse"]
-Bedrooms = Literal["all", "studio", "1", "2", "3", "4", "5+"]
+Bedrooms = Literal["all", "studio", "1", "2", "3", "4", "5", "5+"]
 Metric = Literal["stats", "count", "list"]
 Area = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2)]
 DateParam = Annotated[str, Field(pattern=r"^$|^\d{4}-\d{2}-\d{2}$")]
@@ -44,7 +47,7 @@ class OfferBriefClient:
             return {"error": "OfferBrief is unavailable", "status": 503}
 
         if response.status_code >= 400:
-            return _http_error(response.status_code)
+            return _http_error(response)
 
         try:
             payload = response.json()
@@ -56,8 +59,15 @@ class OfferBriefClient:
         return payload
 
 
-def _http_error(status_code: int) -> dict[str, str | int]:
-    if status_code == 400:
+def _http_error(response: httpx.Response) -> dict[str, str | int]:
+    status_code = response.status_code
+    try:
+        detail = response.json().get("error")
+    except (ValueError, AttributeError):
+        detail = None
+    if status_code in (400, 404) and isinstance(detail, str) and detail:
+        message = detail
+    elif status_code == 400:
         message = "OfferBrief rejected the query"
     elif status_code == 404:
         message = "No matching OfferBrief data was found"
@@ -76,7 +86,7 @@ def _parse_date(value: str, field_name: str) -> date | None:
     try:
         return date.fromisoformat(value)
     except ValueError as error:
-        raise ValueError(f"{field_name} must use YYYY-MM-DD") from error
+        raise ToolError(f"{field_name} must be a real date in YYYY-MM-DD format") from error
 
 
 offerbrief_client = OfferBriefClient()
@@ -90,7 +100,9 @@ mcp = MCPServer(
 )
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True)
+)
 async def query_dld(
     area: Area,
     type: QueryType = "sales",
@@ -100,14 +112,17 @@ async def query_dld(
     date_to: DateParam = "",
     metric: Metric = "stats",
     limit: Limit = 10,
-) -> dict[str, Any]:
-    """Query Dubai property sales transactions or rental contracts."""
+) -> Annotated[CallToolResult, dict[str, Any]]:
+    """Query Dubai property sales or rentals. Dates default to the last 12 months.
+
+    Bedroom filters are supported only for sales. Prices are in AED and areas in square metres.
+    """
     start_date = _parse_date(date_from, "date_from")
     end_date = _parse_date(date_to, "date_to")
     if start_date and end_date and start_date > end_date:
-        raise ValueError("date_from must not be later than date_to")
-    if type == "rentals" and property_type != "all":
-        raise ValueError("property_type is only supported for sales queries")
+        raise ToolError("date_from must not be later than date_to")
+    if type == "rentals" and bedrooms != "all":
+        raise ToolError("bedrooms is only supported for sales queries; DLD's current rental feed has no bedroom data")
 
     params: dict[str, str | int] = {
         "area": area,
@@ -121,7 +136,12 @@ async def query_dld(
         params["date_from"] = date_from
     if date_to:
         params["date_to"] = date_to
-    return await offerbrief_client.query(params)
+    payload = await offerbrief_client.query(params)
+    return CallToolResult(
+        content=[TextContent(type="text", text=json.dumps(payload))],
+        structured_content=payload,
+        is_error="error" in payload,
+    )
 
 
 def main() -> None:

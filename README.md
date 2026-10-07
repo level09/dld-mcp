@@ -44,24 +44,24 @@ Add that entry to `~/Library/Application Support/Claude/claude_desktop_config.js
 | `area` | Area or building name, at least 2 non-whitespace characters | Required |
 | `type` | `sales`, `rentals` | `sales` |
 | `property_type` | `all`, `apartment`, `villa`, `townhouse` | `all` |
-| `bedrooms` | `all`, `studio`, `1`, `2`, `3`, `4`, `5+` | `all` |
+| `bedrooms` | `all`, `studio`, `1`, `2`, `3`, `4`, `5`, `5+` | `all` |
 | `date_from` | A real date in `YYYY-MM-DD` format | OfferBrief default |
 | `date_to` | A real date in `YYYY-MM-DD` format | OfferBrief default |
 | `metric` | `stats`, `count`, `list` | `stats` |
 | `limit` | Integer from 1 through 50 | `10` |
 
-`property_type` is supported only for sales. `date_from` cannot be later than `date_to`.
+`bedrooms` is supported only for sales: DLD's current rental feed has no bedroom data. `date_from` cannot be later than `date_to`. The default window is the last 12 months.
 
 Examples:
 
 ```text
 query_dld(area="Marina")
 query_dld(area="Palm", property_type="villa", date_from="2024-01-01", metric="count")
-query_dld(area="Downtown", type="rentals", bedrooms="2")
+query_dld(area="Downtown", type="rentals", property_type="apartment")
 query_dld(area="JBR", metric="list", limit=10)
 ```
 
-Invalid arguments fail before an API request. OfferBrief HTTP, rate limit, timeout, connection, and malformed response failures return structured errors with a message and status code.
+Invalid arguments fail before an API request. OfferBrief's own message is passed through for rejected queries and empty results. HTTP, rate limit, timeout, connection, and malformed response failures set MCP `isError` and return structured errors with a message and status code. Results include both structured content and JSON text for client compatibility. The tool declares read-only, non-destructive, idempotent access to an external data source.
 
 ## OfferBrief dependency and privacy
 
