@@ -1,5 +1,6 @@
 """MCP server for Dubai Land Department property data."""
 
+import argparse
 import json
 import logging
 from datetime import date
@@ -9,6 +10,7 @@ from typing import Annotated, Any, Literal
 import httpx
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import CallToolResult, TextContent, ToolAnnotations
 from pydantic import Field, StringConstraints
 
@@ -145,7 +147,28 @@ async def query_dld(
 
 
 def main() -> None:
-    mcp.run(transport="stdio")
+    parser = argparse.ArgumentParser(prog="dld-mcp")
+    parser.add_argument("--http", action="store_true", help="Serve streamable HTTP instead of stdio")
+    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--public-host", help="Public hostname allowed in Host and Origin headers")
+    args = parser.parse_args()
+    if not args.http:
+        mcp.run(transport="stdio")
+        return
+    hosts = ["127.0.0.1", f"127.0.0.1:{args.port}", "localhost", f"localhost:{args.port}"]
+    origins = []
+    if args.public_host:
+        hosts.append(args.public_host)
+        origins.append(f"https://{args.public_host}")
+    # ponytail: tool calls go through the public API, so all remote users share its per-IP limit
+    mcp.run(
+        transport="streamable-http",
+        host="127.0.0.1",
+        port=args.port,
+        stateless_http=True,
+        json_response=True,
+        transport_security=TransportSecuritySettings(allowed_hosts=hosts, allowed_origins=origins),
+    )
 
 
 if __name__ == "__main__":

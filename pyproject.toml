@@ -1,6 +1,6 @@
 [project]
 name = "dld-mcp"
-version = "0.3.1"
+version = "0.4.0"
 description = "MCP server for Dubai real estate - DLD transactions and Ejari rentals"
 readme = "README.md"
 license = "MIT"

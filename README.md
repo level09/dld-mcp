@@ -1,6 +1,6 @@
 # DLD MCP Server
 
-Local stdio MCP server for querying Dubai property sales transactions and rental contracts through OfferBrief.
+MCP server (local stdio or remote HTTP) for querying Dubai property sales transactions and rental contracts through OfferBrief.
 
 The server uses MCP Python SDK v2 and supports the MCP 2026-07-28 protocol.
 
@@ -34,6 +34,20 @@ Claude Desktop:
 ```
 
 Add that entry to `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS.
+
+Remote (no install): add `https://offerbrief.com/mcp` as a custom connector in Claude or ChatGPT, or
+
+```bash
+claude mcp add --transport http dld https://offerbrief.com/mcp
+```
+
+Self-hosting the HTTP endpoint:
+
+```bash
+uvx dld-mcp --http --port 8765 --public-host example.com
+```
+
+It listens on 127.0.0.1 (put a TLS reverse proxy in front), is stateless, and rejects Host and Origin headers other than localhost and `--public-host`.
 
 ## Tool
 
